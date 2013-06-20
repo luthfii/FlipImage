@@ -1,82 +1,85 @@
 package com.android.flipimage;
 
-
-
-import java.io.FileNotFoundException;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.app.Activity;
+import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
-import android.view.View;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.net.Uri;
-import android.widget.Button;
-import android.widget.ImageView;
+import android.os.Bundle;
+import android.view.*;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.*;
 
 import com.android.flipimage.R;
-import com.android.flipimage.lib.FlipViewController;
 
-import android.os.Bundle;
-import android.app.Activity;
-import android.view.Menu;
-//import android.widget.ImageView;
-//import android.widget.SimpleAdapter;
+import com.android.flipimage.R;
+import com.android.lib.*;
+
 
 public class MainActivity extends Activity {
-	Button buttonLoadImage;
-	TextView textTargetUri;
-	ImageView targetImage;
+	
+	private FlipViewController flipView;
+	
+	/**BEGIN Memo**/
+	/* The connection to the hardware */
+	private ShakeDetector myShakeDetector;
+    private SensorManager mySensorManager;
+    private Sensor myAccelerometer;
+	/**END Memo**/
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
 		
-		buttonLoadImage = (Button) findViewById(R.id.buttonLoadImage);
-		buttonLoadImage.setOnClickListener(new Button.OnClickListener() {
+		setTitle(R.string.activity_title);
 
+		flipView = new FlipViewController(this, FlipViewController.HORIZONTAL);
+
+		flipView.setAdapter(new TravelAdapter(this));
+
+		setContentView(flipView);
+		
+		/**Begin Memo**/
+		mySensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE); // (1)
+		myAccelerometer = mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        myShakeDetector = new ShakeDetector();
+        
+        
+		//mSensorListener.setOnShakeListener(new ShakeEventListener.OnShakeListener() {
+        myShakeDetector.setShakeDetector(new ShakeDetector.OnShakeListener() {
+			
 			@Override
-			public void onClick(View arg0) {
-				// TODO Auto-generated method stub
-				Intent intent = new Intent( Intent.ACTION_PICK, 
-						android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-				startActivityForResult(intent, 0);
+			public void onShake() {
+				Toast.makeText(MainActivity.this, "Shake!", Toast.LENGTH_SHORT).show();
 			}
+		
 		});
-		//	ImageView image = (ImageView) findViewById(R.id.imageView1);
-		//image.setImageResource(R.drawable)
+
+
 	}
+
 	
+	/**BEGIN Memo**/
 	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		// TODO Auto-generated method stub
-		super.onActivityResult(requestCode, resultCode, data);
-
-		if (resultCode == RESULT_OK) {
-			Uri targetUri = data.getData();
-			textTargetUri.setText(targetUri.toString());
-			Bitmap bitmap;
-			try {
-				bitmap = BitmapFactory.decodeStream(getContentResolver()
-						.openInputStream(targetUri));
-				targetImage.setImageBitmap(bitmap);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
+	protected void onResume() {
+		super.onResume();
+		flipView.onResume();
+        mySensorManager.registerListener(myShakeDetector, myAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
+	protected void onPause() {
+		super.onPause();
+		flipView.onPause();
+		mySensorManager.unregisterListener(myShakeDetector);
 	}
-
-	public void horizontal(View view){
-		Intent intent = new Intent(this, FlipHorizontalLayoutActivity.class);
-		startActivity(intent);
-	}
+	/**END Memo**/
 
 }
